@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>厨房注文システム</title>
+    <style>
+        body { font-family: sans-serif; margin: 0; background: #f4f7f6; text-align: center; }
+        .screen { display: none; padding: 20px; }
+        .active { display: block; }
+        
+        /* ボタンのデザイン */
+        button { padding: 15px 25px; font-size: 18px; margin: 10px; cursor: pointer; border: none; border-radius: 8px; }
+        .btn-order { background: #4CAF50; color: white; }
+        .btn-kitchen { background: #2196F3; color: white; }
+        .btn-back { background: #9e9e9e; color: white; }
+        .btn-submit { background: #ff9800; color: white; width: 80%; }
+
+        /* メニュー表示 */
+        .menu-grid { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-top: 20px; }
+        .menu-item { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); width: 150px; cursor: pointer; }
+
+        /* 伝票のデザイン */
+        .kitchen-grid { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+        .order-card { background: white; border-top: 8px solid #ff5722; padding: 15px; border-radius: 5px; width: 250px; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .order-no { font-weight: bold; font-size: 20px; border-bottom: 1px dashed #ccc; margin-bottom: 10px; padding-bottom: 5px; }
+        .status-badge { background: #eee; font-size: 12px; padding: 2px 5px; border-radius: 3px; float: right; }
+    </style>
+</head>
+<body>
+
+    <section id="home-screen" class="screen active">
+        <h1>レストラン注文システム</h1>
+        <div style="margin-top: 50px;">
+            <button class="btn-order" onclick="showScreen('order-screen')">注文を送信する (客席iPad)</button><br>
+            <button class="btn-kitchen" onclick="showScreen('kitchen-screen')">注文を表示する (厨房iPad)</button>
+        </div>
+    </section>
+
+    <section id="order-screen" class="screen">
+        <h2>メニューを選んでください</h2>
+        <div class="menu-grid">
+            <div class="menu-item" onclick="addToCart('ハンバーグ')">🍔<br>ハンバーグ</div>
+            <div class="menu-item" onclick="addToCart('オムライス')">🍳<br>オムライス</div>
+            <div class="menu-item" onclick="addToCart('コーラ')">🥤<br>コーラ</div>
+        </div>
+        
+        <div id="cart-area" style="margin-top: 30px; background: #e0e0e0; padding: 20px; border-radius: 10px;">
+            <h3>選択中の商品</h3>
+            <div id="cart-list">なし</div>
+            <button class="btn-submit" onclick="sendOrderToFirebase()">注文を確定して送る</button>
+        </div>
+        <button class="btn-back" onclick="showScreen('home-screen')">ホームへ戻る</button>
+    </section>
+
+    <section id="kitchen-screen" class="screen">
+        <h2>厨房・調理待ち伝票</h2>
+        <div id="kitchen-orders" class="kitchen-grid">
+            </div>
+        <button class="btn-back" onclick="showScreen('home-screen')" style="margin-top: 30px;">ホームへ戻る</button>
+    </section>
+
+    <script type="module">
+        // Firebaseの機能を読み込む
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+        // ★★★ ここにあなたのFirebase設定を上書きしてください ★★★
+        const firebaseConfig = {
+            apiKey: "AIzaSyC39AdMEGzrMlwDVtGqYxGC6MI8vW3wD7k",
+            authDomain: "cash-system-574e9.firebaseapp.com",
+            databaseURL: "https://cash-system-574e9-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "cash-system-574e9",
+            storageBucket: "cash-system-574e9.firebasestorage.app",
+            messagingSenderId: "510943732907",
+            appId: "1:510943732907:web:d73fb867a5337637be43ee",
+            measurementId: "G-2WECDF7DD8"
+          };
+
+        // Firebaseの初期化
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        // --- 画面切り替え ---
+        window.showScreen = (id) => {
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+        };
+
+        // --- 注文処理 (客席用) ---
+        let cart = [];
+        window.addToCart = (name) => {
+            cart.push(name);
+            document.getElementById('cart-list').innerText = cart.join('、');
+        };
+
+        window.sendOrderToFirebase = () => {
+            if (cart.length === 0) return alert("商品を選んでください");
+            
+            const newOrder = {
+                orderNo: Math.floor(100 + Math.random() * 900), // 伝票番号
+                items: cart,
+                status: "cooking",
+                time: new Date().toLocaleTimeString()
+            };
+
+            // Firebaseの 'orders' フォルダに送信！
+            push(ref(db, 'orders'), newOrder);
+
+            alert("厨房へ送信しました！");
+            cart = [];
+            document.getElementById('cart-list').innerText = "なし";
+            showScreen('home-screen');
+        };
+
+        // --- 厨房モニター処理 (厨房用) ---
+        // Firebaseのデータが更新されたら自動で動く
+        onValue(ref(db, 'orders'), (snapshot) => {
+            const data = snapshot.val();
+            const kitchenDiv = document.getElementById('kitchen-orders');
+            kitchenDiv.innerHTML = ""; // 一旦クリア
+
+            if (data) {
+                // 届いたデータをカード形式で表示
+                Object.keys(data).forEach(key => {
+                    const order = data[key];
+                    const card = `
+                        <div class="order-card">
+                            <div class="order-no">
+                                #${order.orderNo} 
+                                <span class="status-badge">${order.time}</span>
+                            </div>
+                            <div>${order.items.join('<br>')}</div>
+                        </div>
+                    `;
+                    kitchenDiv.innerHTML += card;
+                });
+            }
+        });
+    </script>
+</body>
+</html>
