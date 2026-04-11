@@ -25,12 +25,9 @@
     <section id="home-screen" class="screen active">
         <h1>レストラン注文システム</h1>
         <button class="btn-order" onclick="showScreen('order-screen')">注文を送信する</button><br>
-        <button class="btn-kitchen" onclick="showScreen('kitchen-screen')">厨房モニターを開く</button>
-        
-        <div style="margin-top: 40px; border-top: 2px solid #ccc; padding-top: 20px;">
-            <h2>📖 本日の注文履歴</h2>
-            <div id="home-history" class="kitchen-grid"></div>
-        </div>
+        <button class="btn-kitchen" onclick="showScreen('kitchen-screen')">注文を表示する</button>
+        <button class="btm-kitchen" onclick="showScreen('history-screen')">注文履歴を見る</button>
+       
     </section>
 
     <section id="order-screen" class="screen">
@@ -50,6 +47,12 @@
     <section id="kitchen-screen" class="screen">
         <h2>🍳 厨房モニター（調理待ち）</h2>
         <div id="kitchen-orders" class="kitchen-grid"></div>
+        <button class="btn-back" onclick="showScreen('home-screen')" style="margin-top: 30px;">ホームへ戻る</button>
+    </section>
+
+    <section id="history-screen" class="screen">
+        <h2>注文履歴</h2>
+        <div id="home-history" class="kitchen-grid"></div>
         <button class="btn-back" onclick="showScreen('home-screen')" style="margin-top: 30px;">ホームへ戻る</button>
     </section>
 
@@ -116,9 +119,9 @@
 
             if (data) {
                 const now = Date.now();
-                Object.keys(data).forEach(key => {
+                // データを新しい順に並べる（任意）
+                Object.keys(data).reverse().forEach(key => {
                     const order = data[key];
-                    // 1日(24時間)経ったデータは無視
                     if (now - order.timestamp > 24 * 60 * 60 * 1000) return;
 
                     const allDone = order.doneItems && order.doneItems.every(status => status === true);
@@ -126,14 +129,23 @@
                     let itemsHtml = "";
                     order.items.forEach((item, i) => {
                         const isDone = order.doneItems && order.doneItems[i];
-                        itemsHtml += `<div onclick="toggleItem('${key}', ${i}, ${isDone})" style="cursor:pointer; text-decoration:${isDone ? 'line-through' : 'none'}; color:${isDone ? '#ccc' : '#000'}">・${item}</div>`;
+                        
+                        // 厨房(allDoneでない時)だけ線を表示、履歴(allDoneの時)は線を表示しない
+                        const itemStyle = (!allDone && isDone) 
+                            ? "text-decoration:line-through; color:#ccc;" 
+                            : "text-decoration:none; color:#000;";
+                        
+                        // 厨房画面のみクリック可能にする
+                        const clickAttr = !allDone ? `onclick="toggleItem('${key}', ${i}, ${isDone})"` : "";
+                        
+                        itemsHtml += `<div ${clickAttr} style="cursor:pointer; ${itemStyle}">・${item}</div>`;
                     });
 
                     const cardHtml = `
-                        <div class="${allDone ? 'history-card' : 'order-card'}">
+                        <div class="${allDone ? 'history-card' : 'order-card'}" style="opacity:1;">
                             <div class="order-no">#${order.orderNo} <span style="font-size:10px;">${order.time}</span></div>
-                            ${itemsHtml}
-                            ${allDone ? '<p style="color:green; font-size:12px;">完了</p>' : ''}
+                            <div>${itemsHtml}</div>
+                            ${allDone ? '<p style="color:blue; font-size:12px; margin-top:10px;">提供完了済み</p>' : ''}
                         </div>
                     `;
 
