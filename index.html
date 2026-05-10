@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>厨房注文システム</title>
+
     <style>
         body { font-family: sans-serif; margin: 0; background: #f4f7f6; text-align: center; }
         .screen { display: none; padding: 20px; }
@@ -32,7 +33,21 @@
 
     <section id="order-screen" class="screen">
         <h2>メニュー選択</h2>
-        <div class="menu-grid">
+
+        <div style="margin-bottom: 20px;">
+            <button onclick="filterMenu('all')" style="font-size: 14px; background:#607d8b; color:white;">すべて</button>
+            <button onclick="filterMenu('ra-men')" style="font-size: 14px; background:#607d8b; color:white;">ラーメン</button>
+            <button onclick="filterMenu('cha-han')" style="font-size: 14px; background:#607d8b; color:white;">チャーハン</button>
+            <button onclick="filterMenu('set')" style="font-size: 14px; background:#607d8b; color:white;">定食</button>
+            <button onclick="filterMenu('ra-menTopping')" style="font-size: 14px; background:#607d8b; color:white;">ラーメントッピング</button>
+            <button onclick="filterMenu('cha-hanTopping')" style="font-size: 14px; background:#607d8b; color:white;">チャーハントッピング</button>
+            <button onclick="filterMenu('flavorChange')" style="font-size: 14px; background:#607d8b; color:white;">味変</button>
+            <button onclick="filterMenu('softDrinks')" style="font-size: 14px; background:#607d8b; color:white;">ソフトドリンク</button>
+            <button onclick="filterMenu('alcohol')" style="font-size: 14px; background:#607d8b; color:white;">アルコール</button>
+            <button onclick="filterMenu('takeOut')" style="font-size: 14px; background:#607d8b; color:white;">持ち帰り</button>
+            <button onclick="filterMenu('others')" style="font-size: 14px; background:#607d8b; color:white;">その他</button>
+
+        <div class="menu-grid" id="menu-container">
             <div class="menu-item" onclick="addToCart('ハンバーグ')">🍔 ハンバーグ</div>
             <div class="menu-item" onclick="addToCart('オムライス')">🍳 オムライス</div>
             <div class="menu-item" onclick="addToCart('コーラ')">🥤 コーラ</div>
