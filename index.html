@@ -20,7 +20,7 @@
         .history-card { background: #eee; border-top: 4px solid #9e9e9e; padding: 10px; border-radius: 5px; width: 200px; text-align: left; opacity: 0.7; font-size: 14px; }
         .order-no { font-weight: bold; font-size: 18px; border-bottom: 1px dashed #ccc; margin-bottom: 5px; }
 
-                /*注文画面の左右のレイアウト*/
+        /*注文画面の左右のレイアウト*/
         .order-container {
             display: flex;
             justify-content: space-between;
@@ -52,6 +52,9 @@
             padding-top: 10px;
             font-size: 20px;
             font-weight: bold;
+        }
+        .cart-items div:hover {
+            background-color: #ffebee;
         }
     </style>
 </head>
@@ -186,8 +189,21 @@
                 return;
             }
 
-            //リストの表示
-            display.innerHTML = cart.map(item => `<div>${item.name} (${item.price}円)</div>`).join('');
+            //リストの表示:クリックで消す機能
+            display.innerHTML = cart.map((item, index) => `
+                <div onclick="removeFromCart(${index})"
+                     style="cursor:pointer; padding:5px; boder-bottom:1px solid #eee;"
+                     title="クリックして削除">
+                    ${item.name} (${item.price}円) <span style="color:red; font-size:12px;">×</span>
+                </div>
+            `).join('');
+
+        //カートから特定の項目を削除する関数
+        window.removeFromCart = (index) => {
+            cart.splice(index, 1);
+            updateCartDisplay();
+        };
+                
 
             //　合計金額の計算
             const total = cart.reduce((sum, item) => sum + item.price, 0);
