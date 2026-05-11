@@ -155,7 +155,7 @@
                 const div = document.createElement('div');
                 div.className = 'menu-item';
                 div.onclick = () => addToCart(item.name, item.price); //ここで　addToCartを使う
-                div.innerHTML = `${item.icon}<br>${item.name}<br><small>${item.price}円</small>`;
+                div.innerHTML = `${item.name}<br><small>${item.price}円</small>`;
                 container.appendChild(div);
             });
         };
