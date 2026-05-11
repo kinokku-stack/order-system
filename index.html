@@ -19,6 +19,40 @@
         .order-card { background: white; border-top: 8px solid #ff5722; padding: 15px; border-radius: 5px; width: 250px; text-align: left; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .history-card { background: #eee; border-top: 4px solid #9e9e9e; padding: 10px; border-radius: 5px; width: 200px; text-align: left; opacity: 0.7; font-size: 14px; }
         .order-no { font-weight: bold; font-size: 18px; border-bottom: 1px dashed #ccc; margin-bottom: 5px; }
+
+                /*注文画面の左右のレイアウト*/
+        .order-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            gap: 10px;
+        }
+        /*左側：メニューエリア*/
+        .menu-section {
+            flex: 2px;
+        }
+        /*右側：注文内容エリア*/
+        .cart-section {
+            flex: 1;
+            background: #fff;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            min-height: 400px;
+            display: flex;
+            flex-direction: column;
+        }
+        .cart-items {
+            flex-grow: 1;
+            text-align: left;
+            overflow-y: auto;
+        }
+        .total-area {
+            border-top: 2px solid #eee;
+            padding-top: 10px;
+            font-size: 20px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -46,16 +80,25 @@
             <button onclick="filterMenu('alcohol')" style="font-size: 14px; background:#607d8b; color:white;">アルコール</button>
             <button onclick="filterMenu('takeOut')" style="font-size: 14px; background:#607d8b; color:white;">持ち帰り</button>
             <button onclick="filterMenu('others')" style="font-size: 14px; background:#607d8b; color:white;">その他</button>
+        </div>
 
-        <div class="menu-grid" id="menu-container">
-            <div class="menu-item" onclick="addToCart('ハンバーグ')">🍔 ハンバーグ</div>
-            <div class="menu-item" onclick="addToCart('オムライス')">🍳 オムライス</div>
-            <div class="menu-item" onclick="addToCart('コーラ')">🥤 コーラ</div>
+        <div class="order-container">
+            <div class="menu-section">
+                <div class="menu-grid" id="menu-container"></div>
+            </div>
+
+            <div class="cart-section">
+                <h3>注文リスト</h3>
+                <div id="cart-display" class="cart-items">
+                    なし
+                </div>
+                <div class="total-area">
+                    合計: <span id="total-price">0</span>円
+                </div>
+                <button class="btn-order" onclick="sendOrderToFirebase()" style="width: 100%; margin-top: 10px;">注文確定</button>
+            </div>
         </div>
-        <div style="margin-top: 20px; background: #ddd; padding: 15px; border-radius: 10px;">
-            <h3>選択中: <span id="cart-list">なし</span></h3>
-            <button class="btn-order" onclick="sendOrderToFirebase()">注文確定</button>
-        </div>
+
         <button class="btn-back" onclick="showScreen('home-screen')">戻る</button>
     </section>
 
@@ -95,22 +138,91 @@
             document.getElementById(id).classList.add('active');
         };
 
-        let cart = [];
-        window.addToCart = (name) => {
-            cart.push(name);
-            document.getElementById('cart-list').innerText = cart.join('、');
+        //メニューに「価格」を追加
+        const menuData = [
+            {name: 'ラーメン', category: 'all', category:'ra-men', price: 960}
+            //To Do メニュー追加
+            //新しくメニューを増やしたいときは上のコードを貼り付ける（名前、カテゴリ、値段は変える）
+        ]
+
+        //メニューを表示する関数
+        window.renderMenu = (category = 'all') => {
+            const container = document.getElementById('menu-container');
+            if (!container) return;
+            container.innerHTML = "";
+            const filtered = category === 'all' ? menuData : menuData.filter(item => item.category === category);
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.onclick = () => addToCart(item.name, item.price); //ここで　addToCartを使う
+                div.innerHTML = `${item.icon}<br>${item.name}<br><small>${item.price}円</small>`;
+                container.appendChild(div);
+            });
+        };
+        //カテゴリー絞り込み関数
+        window.filterMenu = (category) => {
+            renderMenu(category);
         };
 
+        //初回実行(ページを開いた瞬間にメニューを出す)
+        renderMenu();
+
+        let cart = [];
+
+        //商品を選んだ時の処理
+        window.addToCart = (name, price) => {
+            cart.push({ name, price });
+            updateCartDisplay();
+        };
+
+        //右側の注文リストと金額を更新
+        function updateCartDisplay() {
+            const display = document.getElementById('cart-display');
+            const totalDisplay = document.getElementById('total-price')
+
+            if (cart.length === 0) {
+                display.innerText = "なし";
+                totalDisplay.innerText = "0"
+                return;
+            }
+
+            //リストの表示
+            display.innerHTML = cart.map(item => `<div>${item.name} (${item.price}円)</div>`).join('');
+
+            //　合計金額の計算
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
+            totalDisplay.innerText = total.toLocaleString(); //カンマ区切りにする
+        }
+
+        // メニューを表示する関数（価格も渡すように変更）
+        window.renderMenu = (category = 'all') => {
+            const container = document.getElementById('menu-container');
+            container.innerHTML = "";
+            const filtered = category === 'all' ? menuData : menuData.filter(item => item.category === category);
+            filtered.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'menu-item';
+                div.onclick = () => addToCart(item.name, item.price);
+                div.innerHTML = `${item.icon}<br>${item.name}<br><small>${item.price}円</small>`;
+                container.appendChild(div);
+            });
+        };
+
+        //注文送信関数
         window.sendOrderToFirebase = () => {
             if (cart.length === 0) return alert("商品を選んでください");
+
+            const total = cart.reduce((sum, item) => sum + item.price, 0);
             const newOrder = {
                 orderNo: Math.floor(100 + Math.random() * 900),
-                items: cart,
+                items: cart.map(i => i.name), //名前だけのリストにする
+                totalPrice: total,
                 doneItems: cart.map(() => false), // 商品ごとの完了状態
                 timestamp: Date.now(),
                 time: new Date().toLocaleTimeString(),
                 pass:'grs-37195-Xnjt'
             };
+            //送信処理
             push(ref(db, 'orders'), newOrder);
             alert("送信しました");
             cart = [];
@@ -131,7 +243,7 @@
             const kitchenDiv = document.getElementById('kitchen-orders');
             const homeHistoryDiv = document.getElementById('home-history');
             kitchenDiv.innerHTML = "";
-            homeHistoryDiv.innerHTML = "";
+            if (homeHistoryDiv) homeHistoryDiv.innerHTML = "";
 
             if (data) {
                 const now = Date.now();
@@ -147,10 +259,9 @@
                         const isDone = order.doneItems && order.doneItems[i];
                         
                         // 厨房(allDoneでない時)だけ線を表示、履歴(allDoneの時)は線を表示しない
-                        const itemStyle = (!allDone && isDone) 
-                            ? "text-decoration:line-through; color:#ccc;" 
-                            : "text-decoration:none; color:#000;";
+                        const itemStyle = (!allDone && isDone) ? "text-decoration:line-through; color:#ccc;" : "text-decoration:none; color:#000;";
                         
+
                         // 厨房画面のみクリック可能にする
                         const clickAttr = !allDone ? `onclick="toggleItem('${key}', ${i}, ${isDone})"` : "";
                         
@@ -161,7 +272,10 @@
                         <div class="${allDone ? 'history-card' : 'order-card'}" style="opacity:1;">
                             <div class="order-no">#${order.orderNo} <span style="font-size:10px;">${order.time}</span></div>
                             <div>${itemsHtml}</div>
-                            ${allDone ? '<p style="color:blue; font-size:12px; margin-top:10px;">提供完了済み</p>' : ''}
+                            <div style="argin-top:10px; font-weitht:bold; border-top:1px solid #eee; padding-top:5px">
+                                合計: ${order.totalPrice ? order.totalPrice.toLocaleString() : 0} 円    
+                            </div>
+                            ${allDone ? '<p style="color:blue; font-size:12px; margin-top:5px;">提供完了済み</p>' : ''}
                         </div>
                     `;
 
